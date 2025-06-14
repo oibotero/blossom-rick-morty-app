@@ -1,5 +1,5 @@
 // src/components/CharacterDetails.tsx
-import React from "react";
+import React, { useState } from "react";
 import { useQuery } from "@apollo/client";
 import { GET_CHARACTER_BY_ID } from "../../graphql/getCharacteresById";
 import type { Character } from "../../types/character";
@@ -10,6 +10,7 @@ import { Heart } from "lucide-react";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "../../store";
 import { addFavorite, removeFavorite } from "../../store/favoritesSlice";
+import { addComment } from "../../store/slices/commentsSlice";
 
 interface Props {
   characterId: number | null;
@@ -21,6 +22,12 @@ export default function CharacterDetails({ characterId }: Props) {
   const favorites = useSelector(
     (state: RootState) => state.favorites.favorites
   );
+  const comments = useSelector(
+    (state: RootState) =>
+      (characterId && state.comments.commentsByCharacter[characterId]) || []
+  );
+
+  const [commentText, setCommentText] = useState("");
 
   const { data, loading, error } = useQuery<{ character: Character }>(
     GET_CHARACTER_BY_ID,
@@ -42,6 +49,13 @@ export default function CharacterDetails({ characterId }: Props) {
       dispatch(removeFavorite(character.id));
     } else {
       dispatch(addFavorite(character));
+    }
+  };
+
+  const handleAddComment = () => {
+    if (character && commentText.trim()) {
+      dispatch(addComment({ characterId: character.id, text: commentText }));
+      setCommentText("");
     }
   };
 
@@ -107,6 +121,36 @@ export default function CharacterDetails({ characterId }: Props) {
             <p className="text-base text-gray-500">Princess</p>
           </div>
         </div>
+      </div>
+
+      {/* Comentarios */}
+      <div className="mt-6">
+        <h3 className="text-md font-semibold mb-2">Comments</h3>
+        <ul className="space-y-2 mb-3">
+          {comments.map((c, i) => (
+            <li
+              key={i}
+              className="text-sm text-gray-800 bg-gray-100 p-2 rounded"
+            >
+              {c.text}
+              <div className="text-xs text-gray-500">
+                {new Date(c.date).toLocaleString()}
+              </div>
+            </li>
+          ))}
+        </ul>
+        <textarea
+          value={commentText}
+          onChange={(e) => setCommentText(e.target.value)}
+          placeholder="Add a comment..."
+          className="w-full border border-gray-300 p-2 rounded"
+        />
+        <button
+          onClick={handleAddComment}
+          className="mt-2 bg-primary-600 text-white px-4 py-1 rounded hover:bg-primary-700"
+        >
+          Submit
+        </button>
       </div>
     </div>
   );
