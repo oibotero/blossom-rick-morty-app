@@ -28,7 +28,8 @@ export default function CharacterPage() {
   };
 
   const handleBack = () => {
-    navigate("/");
+    //navigate("/");
+    navigate(-1);
   };
 
   const visibleCharacterId = characterId ?? selectedId;
@@ -41,6 +42,7 @@ export default function CharacterPage() {
           characterId ? (
             <div className="w-full relative">
               <button
+                type="button"
                 onClick={handleBack}
                 className="absolute top-4 left-4 z-10 bg-white rounded-full p-2 shadow"
               >
