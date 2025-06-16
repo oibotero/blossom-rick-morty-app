@@ -30,8 +30,6 @@ export default function AdvancedSearchPage() {
   const visibleCharacters = nonFavoriteCharacters.filter(
     (char) => !hiddenIds.includes(Number(char.id))
   );
-  const totalFilteredCharacters =
-    visibleCharactersFavorites.length + visibleCharacters.length;
 
   const filtersCount = [
     filters.search && filters.search !== "",
@@ -45,6 +43,10 @@ export default function AdvancedSearchPage() {
     filters.character === "starred" || filters.character === "all";
   const showOthers =
     filters.character === "others" || filters.character === "all";
+
+  const totalFilteredCharacters =
+    (showFavorites ? visibleCharactersFavorites.length : 0) +
+    (showOthers ? visibleCharacters.length : 0);
 
   const renderCharacterItem = (char: Character) => (
     <li
