@@ -2,10 +2,8 @@ import React from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../store";
 
-import type { Character } from "@/types/character";
 import FavoritesComponent from "./FavoritesComponent";
 import { selectFilters } from "@/store/selector";
-import { hideCharacter } from "../../store/slices/hiddenCharactersSlice";
 
 interface Props {
   onSelect: (id: number) => void;
@@ -13,16 +11,18 @@ interface Props {
 }
 
 export default function FavoriteList({ onSelect, selectedId }: Props) {
+  // Lista de personajes marcados como favoritos desde el store
   const favorites = useSelector(
     (state: RootState) => state.favorites.favorites
   );
 
-  // Combinar filtros de ambos slices
+  // Filtros desde ambos slices: characters y filters
   const filtersFromCharacters = useSelector(
     (state: RootState) => state.characters
   );
   const filtersFromFiltersSlice = useSelector(selectFilters);
 
+  // Consolidación de filtros activos (prioriza filtersSlice)
   const activeSearch =
     filtersFromFiltersSlice.search || filtersFromCharacters.search;
   const activeSpeciesFilter =
@@ -47,9 +47,9 @@ export default function FavoriteList({ onSelect, selectedId }: Props) {
 
   const activeSortOrder = filtersFromCharacters.sortOrder;
 
+  // Aplicar filtros a la lista de favoritos
   const filteredFavorites = favorites
     .filter((char) => {
-      // Filtro por tipo de personaje
       if (activeCharacterFilter === "others") return false;
       if (
         activeCharacterFilter !== "all" &&
@@ -58,7 +58,6 @@ export default function FavoriteList({ onSelect, selectedId }: Props) {
         return false;
       }
 
-      // Filtro por especie
       if (
         activeSpeciesFilter !== "all" &&
         char.species.toLowerCase() !== activeSpeciesFilter
@@ -66,7 +65,6 @@ export default function FavoriteList({ onSelect, selectedId }: Props) {
         return false;
       }
 
-      // Filtro por nombre
       if (
         activeSearch &&
         !char.name.toLowerCase().includes(activeSearch.toLowerCase())
@@ -74,7 +72,6 @@ export default function FavoriteList({ onSelect, selectedId }: Props) {
         return false;
       }
 
-      // Filtro por estado
       if (
         activeStatusFilter !== "all" &&
         char.status.toLowerCase() !== activeStatusFilter
@@ -82,7 +79,6 @@ export default function FavoriteList({ onSelect, selectedId }: Props) {
         return false;
       }
 
-      // Filtro por género
       if (
         activeGenderFilter !== "all" &&
         char.gender.toLowerCase() !== activeGenderFilter
@@ -98,16 +94,20 @@ export default function FavoriteList({ onSelect, selectedId }: Props) {
         : b.name.localeCompare(a.name)
     );
 
+  // Obtener IDs de personajes ocultos para no mostrarlos en la lista
   const hiddenIds = useSelector((state: RootState) => state.hiddenCharacters);
+
+  // Filtrar favoritos visibles (no ocultos)
   const visibleCharacters = filteredFavorites.filter(
     (char) => !hiddenIds.includes(Number(char.id))
   );
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-gray-500 mb-2 mt-4 sticky top-0 bg-white z-10">
+      <h2 className="text-sm font-semibold text-gray-500 mb-2 mt-4 ml-2 sticky top-0 bg-white z-10">
         STARRED CHARACTERS ({visibleCharacters.length})
       </h2>
+
       <ul className="divide-y divide-gray-200">
         {visibleCharacters.map((char) => (
           <li
@@ -137,7 +137,6 @@ export default function FavoriteList({ onSelect, selectedId }: Props) {
               itemGender={char.gender}
               itemSpecies={char.species}
               itemStatus={char.status}
-              itemOccupation={char.occupation}
             />
           </li>
         ))}

@@ -1,20 +1,23 @@
 // src/components/CharacterDetails.tsx
-import React, { useState } from "react";
-import { empty, useQuery } from "@apollo/client";
-import { GET_CHARACTER_BY_ID } from "../../graphql/getCharacteresById";
-import type { Character } from "../../types/character";
+import React, { useMemo, useState } from "react";
+import { useQuery } from "@apollo/client";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Heart, Trash2 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+
+// GraphQL query
+import { GET_CHARACTER_BY_ID } from "../../graphql/getCharacteresById";
+
+// Tipado
+import type { Character } from "../../types/character";
+import type { RootState } from "../../store";
 
 // Redux
 import { useSelector, useDispatch } from "react-redux";
-import type { RootState } from "../../store";
 import { addFavorite, removeFavorite } from "../../store/favoritesSlice";
 import { addComment } from "../../store/slices/commentsSlice";
-import { useMemo } from "react";
-import { makeSelectCommentsByCharacterId } from "@/store/selector";
 import { hideCharacter } from "../../store/slices/hiddenCharactersSlice";
+import { makeSelectCommentsByCharacterId } from "@/store/selector";
 
 interface Props {
   characterId: number | null;
@@ -34,6 +37,7 @@ export default function CharacterDetails({ characterId }: Props) {
 
   const [commentText, setCommentText] = useState("");
 
+  // Obtener datos del personaje
   const { data, loading, error } = useQuery<{ character: Character }>(
     GET_CHARACTER_BY_ID,
     {
@@ -43,19 +47,19 @@ export default function CharacterDetails({ characterId }: Props) {
   );
 
   const character = data?.character;
+
   const isFavorite =
     character && favorites.some((fav) => fav.id === character.id);
 
+  // Agregar o quitar personaje de favoritos
   const handleFavoriteToggle = () => {
     if (!character) return;
-
-    if (isFavorite) {
-      dispatch(removeFavorite(character.id));
-    } else {
-      dispatch(addFavorite(character));
-    }
+    isFavorite
+      ? dispatch(removeFavorite(character.id))
+      : dispatch(addFavorite(character));
   };
 
+  // Agregar comentario
   const handleAddComment = () => {
     if (character && commentText.trim()) {
       dispatch(addComment({ characterId: character.id, text: commentText }));
@@ -63,6 +67,7 @@ export default function CharacterDetails({ characterId }: Props) {
     }
   };
 
+  // Vista de carga o estado vacío
   if (!characterId || loading) {
     return (
       <div className="w-full md:w-2/3 p-6 overflow-y-auto text-gray-500 italic text-center">
@@ -73,6 +78,7 @@ export default function CharacterDetails({ characterId }: Props) {
     );
   }
 
+  // Error al cargar o personaje no encontrado
   if (error || !character) {
     return (
       <div className="w-full md:w-2/3 p-6 overflow-y-auto text-red-500 italic text-center">
@@ -82,19 +88,26 @@ export default function CharacterDetails({ characterId }: Props) {
   }
 
   return (
-    <div className={` ${!characterId ? "hidden md:block" : ""}`}>
+    <div
+      className={`w-full md:w-3/3 max-h-screen overflow-y-auto border-r border-gray-200 p-4 ${
+        !characterId ? "hidden md:block" : ""
+      }`}
+    >
       <div className="sm:flex-row sm:items-start gap-6">
-        {/* Imagen y botón de favorito */}
+        {/* Imagen y botones de acción */}
         <div className="relative w-24 h-24 shrink-0">
           <img
             src={character.image}
             alt={character.name}
             className="w-full h-full object-cover rounded-full border-4 border-primary-100 shadow-md"
           />
+
+          {/* Botón de favorito */}
           <motion.button
             role="button"
             aria-label="Toggle Favorite"
-            whileTap={{ scale: 1.2 }}
+            whileTap={{ scale: 1.2, rotate: -15 }}
+            whileHover={{ scale: 1.1 }}
             className="absolute bottom-0 right-0 bg-white p-1 rounded-full shadow transition-colors"
             onClick={handleFavoriteToggle}
           >
@@ -105,7 +118,7 @@ export default function CharacterDetails({ characterId }: Props) {
             />
           </motion.button>
 
-          {/* Botón ocultar */}
+          {/* Botón ocultar personaje */}
           <motion.button
             role="button"
             aria-label="Hide Character"
@@ -121,12 +134,12 @@ export default function CharacterDetails({ characterId }: Props) {
           </motion.button>
         </div>
 
-        {/* Información textual */}
+        {/* Detalles del personaje */}
         <div className="flex-1 space-y-4">
           <h2 className="text-2xl font-bold text-gray-800">{character.name}</h2>
 
           <div>
-            <p className="text font-semibold text-gray-800">Species</p>
+            <p className="text-sm font-semibold text-gray-800">Species</p>
             <p className="text-base text-gray-500">{character.species}</p>
           </div>
           <div>
@@ -138,11 +151,9 @@ export default function CharacterDetails({ characterId }: Props) {
             <p className="text-base text-gray-500">Princess</p>
           </div>
         </div>
-      </div>
 
-      {/* Comentarios */}
-      <div className="mt-6">
-        <h3 className="text-md font-semibold mb-2">Comments</h3>
+        {/* Comentarios */}
+        <h3 className="text-md font-semibold mb-2 mt-6">Comments</h3>
         <ul className="space-y-2 mb-3">
           {comments.map((c, i) => (
             <li
@@ -156,6 +167,8 @@ export default function CharacterDetails({ characterId }: Props) {
             </li>
           ))}
         </ul>
+
+        {/* Input de comentario */}
         <textarea
           value={commentText}
           onChange={(e) => setCommentText(e.target.value)}
@@ -163,9 +176,15 @@ export default function CharacterDetails({ characterId }: Props) {
           className="w-full border border-gray-300 p-2 rounded"
         />
 
+        {/* Botón de envío */}
         <button
           onClick={handleAddComment}
-          className="mt-2 bg-primary-600 text-white px-4 py-1 rounded hover:bg-primary-700"
+          disabled={commentText.trim() === ""}
+          className={`mt-2 px-4 py-1 rounded transition-colors ${
+            commentText.trim() === ""
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-primary-600 text-white hover:bg-primary-700"
+          }`}
         >
           Submit
         </button>

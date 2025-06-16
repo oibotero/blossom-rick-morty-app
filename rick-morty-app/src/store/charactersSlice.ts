@@ -56,8 +56,6 @@ const charactersSlice = createSlice({
     toggleSortOrder(state) {
       state.sortOrder = state.sortOrder === "asc" ? "desc" : "asc";
     },
-
-    // Otros reducers aquí...
   },
 });
 

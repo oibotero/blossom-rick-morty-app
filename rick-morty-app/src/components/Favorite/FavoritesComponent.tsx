@@ -1,4 +1,3 @@
-// src/components/Favorite/FavoritesComponent.tsx
 import React from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../../store";
@@ -6,6 +5,7 @@ import { toggleFavorite } from "../../store/favoritesSlice";
 import { Heart } from "lucide-react";
 import { motion } from "framer-motion";
 
+// Props que recibe el componente de favorito
 interface FavoritesComponentProps {
   itemId: string;
   itemName: string;
@@ -13,7 +13,6 @@ interface FavoritesComponentProps {
   itemGender: string;
   itemSpecies: string;
   itemStatus: string;
-  itemOccupation: string;
 }
 
 const FavoritesComponent: React.FC<FavoritesComponentProps> = ({
@@ -23,14 +22,18 @@ const FavoritesComponent: React.FC<FavoritesComponentProps> = ({
   itemGender,
   itemSpecies,
   itemStatus,
-  itemOccupation,
 }) => {
   const dispatch = useDispatch();
+
+  // Obtener lista de favoritos del estado global
   const favorites = useSelector(
     (state: RootState) => state.favorites.favorites
   );
+
+  // Verifica si el personaje actual está en favoritos
   const isFavorited = favorites.some((char) => char.id === itemId);
 
+  // Maneja el clic en el botón para agregar/quitar de favoritos
   const handleClick = () => {
     dispatch(
       toggleFavorite({
@@ -40,16 +43,16 @@ const FavoritesComponent: React.FC<FavoritesComponentProps> = ({
         gender: itemGender,
         species: itemSpecies,
         status: itemStatus,
-        occupation: itemOccupation,
       })
     );
   };
 
   return (
     <motion.button
-      whileTap={{ scale: 1.3 }}
+      whileTap={{ scale: 1.3, rotate: -15 }} // Animación al hacer tap
+      whileHover={{ scale: 1.1 }} // Animación al hacer hover
       onClick={(e) => {
-        e.stopPropagation();
+        e.stopPropagation(); // Evita que el clic afecte a componentes padre
         handleClick();
       }}
       className={`ml-auto p-2 rounded-full bg-white transition-colors duration-200

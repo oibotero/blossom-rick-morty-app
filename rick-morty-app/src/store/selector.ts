@@ -18,7 +18,6 @@ export const makeSelectCommentsByCharacterId = () =>
 export const selectFilteredCharacters = createSelector(
   [selectCharacters, selectFilters],
   (characters, filters) => {
-    console.log("RAW CHARACTERS:", characters);
     if (!Array.isArray(characters)) return [];
 
     return characters

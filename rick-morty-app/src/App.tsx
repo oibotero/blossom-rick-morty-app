@@ -1,10 +1,5 @@
-import React, { useState, useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 
-//import { FavoritesProvider } from "./components/Favorite/FavoritesContext";
-
-import CharacterList from "./components/Character/CharacterList";
-import CharacterDetails from "./components/Character/CharacterDetails";
 import CharacterPage from "./pages/CharacterPage";
 import FiltersPage from "./pages/FiltersPage";
 import AdvancedSearchPage from "./pages/AdvancedSearchPage";

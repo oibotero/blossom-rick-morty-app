@@ -43,6 +43,9 @@ const filtersSlice = createSlice({
       state.search = action.payload;
     },
     resetFilters: () => initialState,
+    setFilters(state, action: PayloadAction<FiltersState>) {
+      return { ...state, ...action.payload };
+    },
   },
 });
 
@@ -53,6 +56,7 @@ export const {
   setGenderFilter,
   setSearch,
   resetFilters,
+  setFilters,
 } = filtersSlice.actions;
 
 export default filtersSlice.reducer;

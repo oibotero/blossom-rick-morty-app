@@ -13,13 +13,12 @@ describe("FavoritesComponent", () => {
     render(
       <Provider store={mockStore}>
         <FavoritesComponent
-          itemId={1}
+          itemId={"1"}
           itemName="Rick Sanchez"
           itemImage="https://rick.com/rick.png"
           itemGender="Male"
           itemSpecies="Human"
           itemStatus="Alive"
-          itemOccupation="Scientist"
         />
       </Provider>
     );
