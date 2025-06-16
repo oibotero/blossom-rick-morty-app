@@ -1,16 +1,20 @@
 // src/components/CharacterDetails.tsx
 import React, { useState } from "react";
-import { useQuery } from "@apollo/client";
+import { empty, useQuery } from "@apollo/client";
 import { GET_CHARACTER_BY_ID } from "../../graphql/getCharacteresById";
 import type { Character } from "../../types/character";
 import { motion } from "framer-motion";
-import { Heart } from "lucide-react";
+import { Heart, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 // Redux
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "../../store";
 import { addFavorite, removeFavorite } from "../../store/favoritesSlice";
 import { addComment } from "../../store/slices/commentsSlice";
+import { useMemo } from "react";
+import { makeSelectCommentsByCharacterId } from "@/store/selector";
+import { hideCharacter } from "../../store/slices/hiddenCharactersSlice";
 
 interface Props {
   characterId: number | null;
@@ -18,13 +22,14 @@ interface Props {
 
 export default function CharacterDetails({ characterId }: Props) {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const favorites = useSelector(
     (state: RootState) => state.favorites.favorites
   );
-  const comments = useSelector(
-    (state: RootState) =>
-      (characterId && state.comments.commentsByCharacter[characterId]) || []
+  const selectComments = useMemo(makeSelectCommentsByCharacterId, []);
+  const comments = useSelector((state: RootState) =>
+    selectComments(state, characterId)
   );
 
   const [commentText, setCommentText] = useState("");
@@ -38,9 +43,8 @@ export default function CharacterDetails({ characterId }: Props) {
   );
 
   const character = data?.character;
-  const isFavorite = character
-    ? favorites.some((fav) => fav.id === character.id)
-    : false;
+  const isFavorite =
+    character && favorites.some((fav) => fav.id === character.id);
 
   const handleFavoriteToggle = () => {
     if (!character) return;
@@ -78,11 +82,7 @@ export default function CharacterDetails({ characterId }: Props) {
   }
 
   return (
-    <div
-      className={`sm:flex-row sm:items-start gap-6 ${
-        !characterId ? "hidden md:block" : ""
-      }`}
-    >
+    <div className={` ${!characterId ? "hidden md:block" : ""}`}>
       <div className="sm:flex-row sm:items-start gap-6">
         {/* Imagen y botón de favorito */}
         <div className="relative w-24 h-24 shrink-0">
@@ -92,6 +92,8 @@ export default function CharacterDetails({ characterId }: Props) {
             className="w-full h-full object-cover rounded-full border-4 border-primary-100 shadow-md"
           />
           <motion.button
+            role="button"
+            aria-label="Toggle Favorite"
             whileTap={{ scale: 1.2 }}
             className="absolute bottom-0 right-0 bg-white p-1 rounded-full shadow transition-colors"
             onClick={handleFavoriteToggle}
@@ -101,6 +103,21 @@ export default function CharacterDetails({ characterId }: Props) {
                 isFavorite ? "fill-secondary-600 stroke-none" : "text-gray-300"
               }`}
             />
+          </motion.button>
+
+          {/* Botón ocultar */}
+          <motion.button
+            role="button"
+            aria-label="Hide Character"
+            whileTap={{ scale: 1.2, rotate: -15 }}
+            whileHover={{ scale: 1.1 }}
+            onClick={() => {
+              dispatch(hideCharacter(Number(character.id)));
+              navigate("/");
+            }}
+            className="absolute bottom-1 left-1 bg-white p-1 rounded-full shadow transition-colors"
+          >
+            <Trash2 className="w-5 h-5 text-red-400 hover:text-red-600 transition-colors" />
           </motion.button>
         </div>
 
@@ -145,6 +162,7 @@ export default function CharacterDetails({ characterId }: Props) {
           placeholder="Add a comment..."
           className="w-full border border-gray-300 p-2 rounded"
         />
+
         <button
           onClick={handleAddComment}
           className="mt-2 bg-primary-600 text-white px-4 py-1 rounded hover:bg-primary-700"

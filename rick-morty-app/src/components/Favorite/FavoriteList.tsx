@@ -1,63 +1,115 @@
-// src/components/Favorite/FavoriteList.tsx
 import React from "react";
 import { useSelector } from "react-redux";
 import type { RootState } from "../../store";
 
 import type { Character } from "@/types/character";
 import FavoritesComponent from "./FavoritesComponent";
+import { selectFilters } from "@/store/selector";
+import { hideCharacter } from "../../store/slices/hiddenCharactersSlice";
 
 interface Props {
   onSelect: (id: number) => void;
   selectedId: number | null;
-  search: string;
-  speciesFilter: string;
-  characterFilter: "all" | "starred" | "others";
-  sortOrder: "asc" | "desc";
 }
 
-export default function FavoriteList({
-  onSelect,
-  selectedId,
-  search,
-  speciesFilter,
-  characterFilter,
-  sortOrder,
-}: Props) {
-  // ✅ Usa Redux en vez del context
+export default function FavoriteList({ onSelect, selectedId }: Props) {
   const favorites = useSelector(
     (state: RootState) => state.favorites.favorites
   );
 
+  // Combinar filtros de ambos slices
+  const filtersFromCharacters = useSelector(
+    (state: RootState) => state.characters
+  );
+  const filtersFromFiltersSlice = useSelector(selectFilters);
+
+  const activeSearch =
+    filtersFromFiltersSlice.search || filtersFromCharacters.search;
+  const activeSpeciesFilter =
+    filtersFromFiltersSlice.species !== "all"
+      ? filtersFromFiltersSlice.species
+      : filtersFromCharacters.speciesFilter;
+
+  const activeCharacterFilter =
+    filtersFromFiltersSlice.character !== "all"
+      ? filtersFromFiltersSlice.character
+      : filtersFromCharacters.characterFilter;
+
+  const activeStatusFilter =
+    filtersFromFiltersSlice.status !== "all"
+      ? filtersFromFiltersSlice.status
+      : filtersFromCharacters.statusFilter;
+
+  const activeGenderFilter =
+    filtersFromFiltersSlice.gender !== "all"
+      ? filtersFromFiltersSlice.gender
+      : filtersFromCharacters.genderFilter;
+
+  const activeSortOrder = filtersFromCharacters.sortOrder;
+
   const filteredFavorites = favorites
     .filter((char) => {
+      // Filtro por tipo de personaje
+      if (activeCharacterFilter === "others") return false;
       if (
-        speciesFilter !== "all" &&
-        char.species.toLowerCase() !== speciesFilter
-      )
+        activeCharacterFilter !== "all" &&
+        activeCharacterFilter !== "starred"
+      ) {
         return false;
+      }
 
-      if (search && !char.name.toLowerCase().includes(search.toLowerCase()))
+      // Filtro por especie
+      if (
+        activeSpeciesFilter !== "all" &&
+        char.species.toLowerCase() !== activeSpeciesFilter
+      ) {
         return false;
+      }
 
-      if (characterFilter === "others") return false;
-      if (characterFilter === "all" || characterFilter === "starred")
-        return true;
+      // Filtro por nombre
+      if (
+        activeSearch &&
+        !char.name.toLowerCase().includes(activeSearch.toLowerCase())
+      ) {
+        return false;
+      }
+
+      // Filtro por estado
+      if (
+        activeStatusFilter !== "all" &&
+        char.status.toLowerCase() !== activeStatusFilter
+      ) {
+        return false;
+      }
+
+      // Filtro por género
+      if (
+        activeGenderFilter !== "all" &&
+        char.gender.toLowerCase() !== activeGenderFilter
+      ) {
+        return false;
+      }
 
       return true;
     })
     .sort((a, b) =>
-      sortOrder === "asc"
+      activeSortOrder === "asc"
         ? a.name.localeCompare(b.name)
         : b.name.localeCompare(a.name)
     );
 
+  const hiddenIds = useSelector((state: RootState) => state.hiddenCharacters);
+  const visibleCharacters = filteredFavorites.filter(
+    (char) => !hiddenIds.includes(Number(char.id))
+  );
+
   return (
     <div>
       <h2 className="text-sm font-semibold text-gray-500 mb-2 mt-4 sticky top-0 bg-white z-10">
-        FAVORITES ({filteredFavorites.length})
+        STARRED CHARACTERS ({visibleCharacters.length})
       </h2>
       <ul className="divide-y divide-gray-200">
-        {filteredFavorites.map((char) => (
+        {visibleCharacters.map((char) => (
           <li
             key={char.id}
             onClick={() => onSelect(Number(char.id))}

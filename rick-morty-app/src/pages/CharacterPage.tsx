@@ -68,7 +68,7 @@ export default function CharacterPage() {
               />
             </div>
             {visibleCharacterId && (
-              <div className="w-2/3 w-full relative pt-16 px-6">
+              <div className="w-2/3 relative pt-16 px-6">
                 <CharacterDetails characterId={visibleCharacterId} />
               </div>
             )}

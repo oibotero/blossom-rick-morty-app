@@ -5,20 +5,23 @@ export const selectCharacters = (state: RootState) => state.characters.list;
 export const selectFavorites = (state: RootState) => state.favorites.favorites;
 export const selectFilters = (state: RootState) => state.filters;
 
+export const makeSelectCommentsByCharacterId = () =>
+  createSelector(
+    [
+      (state: RootState) => state.comments.commentsByCharacter,
+      (_: RootState, characterId: number | null) => characterId,
+    ],
+    (commentsByCharacter, characterId) =>
+      (characterId && commentsByCharacter[characterId]) || []
+  );
+
 export const selectFilteredCharacters = createSelector(
-  [selectCharacters, selectFavorites, selectFilters],
-  (characters, favorites, filters) => {
-    const favoriteIds = new Set(favorites.map((f) => f.id));
+  [selectCharacters, selectFilters],
+  (characters, filters) => {
+    console.log("RAW CHARACTERS:", characters);
+    if (!Array.isArray(characters)) return [];
 
     return characters
-      .filter((char) => {
-        // Excluir favoritos si el filtro es "others"
-        if (filters.character === "others" && favoriteIds.has(char.id))
-          return false;
-        if (filters.character === "starred" && !favoriteIds.has(char.id))
-          return false;
-        return true;
-      })
       .filter((char) =>
         filters.search
           ? char.name.toLowerCase().includes(filters.search.toLowerCase())

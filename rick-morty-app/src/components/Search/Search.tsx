@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from "react";
 import { SlidersHorizontal } from "lucide-react";
-
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 
 import {
-  setSearch as setSearchRedux,
+  setSearch,
   setCharacterFilter,
   setSpeciesFilter,
   setStatusFilter,
   setGenderFilter,
-} from "../../store/charactersSlice";
+} from "../../store/slices/filtersSlice";
 
 const Search: React.FC = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
   const [isFilterOpen, setIsFilterOpen] = useState(false);
   const [searchInput, setSearchInput] = useState("");
@@ -31,23 +31,22 @@ const Search: React.FC = () => {
     "all" | "male" | "female" | "genderless" | "unknown"
   >("all");
 
-  const applyFilters = () => {
-    dispatch(setSearchRedux(searchInput));
-    dispatch(setCharacterFilter(tempCharacterFilter));
-    dispatch(setSpeciesFilter(tempSpeciesFilter));
-    dispatch(setStatusFilter(tempStatusFilter));
-    dispatch(setGenderFilter(tempGenderFilter));
-    setIsFilterOpen(false);
-  };
-
-  const navigate = useNavigate();
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
   useEffect(() => {
     const handleResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const applyFilters = () => {
+    dispatch(setSearch(searchInput));
+    dispatch(setCharacterFilter(tempCharacterFilter));
+    dispatch(setSpeciesFilter(tempSpeciesFilter));
+    dispatch(setStatusFilter(tempStatusFilter));
+    dispatch(setGenderFilter(tempGenderFilter));
+    console.log(tempGenderFilter);
+    setIsFilterOpen(false);
+  };
 
   return (
     <div className="mb-6 px-4 sm:px-0">
@@ -56,7 +55,11 @@ const Search: React.FC = () => {
           type="text"
           placeholder="Search characters"
           value={searchInput}
-          onChange={(e) => setSearchInput(e.target.value)}
+          onChange={(e) => {
+            const value = e.target.value;
+            setSearchInput(value);
+            dispatch(setSearch(value));
+          }}
           className="flex-1 px-4 py-2 border border-gray-300 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-600 text-sm"
         />
 
@@ -120,7 +123,6 @@ const Search: React.FC = () => {
 
 export default Search;
 
-// Reusable filter button group
 const FilterGroup = ({
   label,
   options,

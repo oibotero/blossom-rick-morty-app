@@ -1,10 +1,6 @@
 import React from "react";
 import { useSelector } from "react-redux";
-import {
-  selectFilteredCharacters,
-  selectFilteredFavorites,
-  selectFilters,
-} from "@/store/selector";
+import { selectFilteredCharacters, selectFilters } from "@/store/selector";
 import FavoritesComponent from "@/components/Favorite/FavoritesComponent";
 import { useNavigate } from "react-router-dom";
 import type { Character } from "@/types/character";
@@ -13,11 +9,14 @@ import { ArrowLeft } from "lucide-react";
 export default function AdvancedSearchPage() {
   const navigate = useNavigate();
   const filters = useSelector(selectFilters);
-  const characters: Character[] = useSelector(selectFilteredCharacters);
-  const favorites: Character[] = useSelector(selectFilteredFavorites);
+  const characters: Character[] = useSelector(selectFilteredCharacters) || [];
+  const favorites = useSelector((state: any) => state.favorites.favorites);
 
-  // Eliminar duplicados: solo mostrar personajes que NO son favoritos
-  const favoriteIds = new Set(favorites.map((fav) => fav.id));
+  // Separar favoritos de no favoritos
+  const favoriteIds = new Set(favorites.map((fav: Character) => fav.id));
+  const favoriteCharacters = characters.filter((char) =>
+    favoriteIds.has(char.id)
+  );
   const nonFavoriteCharacters = characters.filter(
     (char) => !favoriteIds.has(char.id)
   );
@@ -86,23 +85,20 @@ export default function AdvancedSearchPage() {
           Done
         </button>
       </div>
-
       <div className="text-sm text-gray-500 mb-4">
         {filtersCount} filter{filtersCount === 1 ? "" : "s"} applied. Results:{" "}
-        {favorites.length + nonFavoriteCharacters.length}
+        {characters.length}
       </div>
-
-      {showFavorites && favorites.length > 0 && (
+      {showFavorites && favoriteCharacters.length > 0 && (
         <div className="mb-6">
           <h2 className="text-sm font-semibold text-gray-600 mb-2">
-            FAVORITES ({favorites.length})
+            STARRED CHARACTERS ({favoriteCharacters.length})
           </h2>
           <ul className="divide-y divide-gray-200">
-            {favorites.map(renderCharacterItem)}
+            {favoriteCharacters.map(renderCharacterItem)}
           </ul>
         </div>
       )}
-
       {showOthers && nonFavoriteCharacters.length > 0 && (
         <div>
           <h2 className="text-sm font-semibold text-gray-600 mb-2">
@@ -113,8 +109,7 @@ export default function AdvancedSearchPage() {
           </ul>
         </div>
       )}
-
-      {!favorites.length && !nonFavoriteCharacters.length && (
+      {!favoriteCharacters.length && !nonFavoriteCharacters.length && (
         <p className="text-gray-600">No characters match your filters.</p>
       )}
     </div>

@@ -7,12 +7,16 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { SortAsc, SortDesc } from "lucide-react";
 
+import { selectFilteredCharacters, selectFilters } from "@/store/selector";
 import Search from "../Search/Search";
 import FavoriteList from "../Favorite/FavoriteList";
 import FavoritesComponent from "../Favorite/FavoritesComponent";
 
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState } from "../../store";
+
+import { hideCharacter } from "../../store/slices/hiddenCharactersSlice";
+
 import {
   setCharacters,
   setSearch,
@@ -33,10 +37,61 @@ interface Props {
 export default function CharacterList({ onSelect, selectedId }: Props) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const filters = useSelector(selectFilters);
 
-  const { search, speciesFilter, characterFilter, sortOrder } = useSelector(
+  const hiddenIds = useSelector((state: RootState) => state.hiddenCharacters);
+
+  const filtersFromCharacters = useSelector(
     (state: RootState) => state.characters
   );
+  const filtersFromFiltersSlice = useSelector(selectFilters);
+
+  // Usar los filtros de filtersSlice si alguno fue aplicado
+  const activeSearch =
+    filtersFromFiltersSlice.search || filtersFromCharacters.search;
+  const activeSpeciesFilter =
+    filtersFromFiltersSlice.species !== "all"
+      ? filtersFromFiltersSlice.species
+      : filtersFromCharacters.speciesFilter;
+
+  const activeCharacterFilter =
+    filtersFromFiltersSlice.character !== "all"
+      ? filtersFromFiltersSlice.character
+      : filtersFromCharacters.characterFilter;
+
+  const activeStatusFilter =
+    filtersFromFiltersSlice.status !== "all"
+      ? filtersFromFiltersSlice.status
+      : filtersFromCharacters.statusFilter;
+
+  const activeGenderFilter =
+    filtersFromFiltersSlice.gender !== "all"
+      ? filtersFromFiltersSlice.gender
+      : filtersFromCharacters.genderFilter;
+
+  const activeSortOrder = filtersFromCharacters.sortOrder;
+
+  const {
+    search,
+    speciesFilter,
+    characterFilter,
+    statusFilter,
+    genderFilter,
+    sortOrder,
+  } = useSelector((state: RootState) => state.characters);
+
+  const filtersCount = [
+    filters.search && filters.search !== "",
+    filters.status !== "all",
+    filters.species !== "all",
+    filters.gender !== "all",
+    filters.character !== "all",
+  ].filter(Boolean).length;
+
+  const showFavorites =
+    filters.character === "starred" || filters.character === "all";
+  const showOthers =
+    filters.character === "others" || filters.character === "all";
 
   const favorites = useSelector(
     (state: RootState) => state.favorites.favorites
@@ -64,19 +119,44 @@ export default function CharacterList({ onSelect, selectedId }: Props) {
   const filteredCharacters = characters.filter((char) => {
     const isFavorite = favoriteIds.has(String(char.id));
 
-    // Quitar favoritos siempre
+    // Ocultar favoritos
     if (isFavorite) return false;
 
-    // Filtro por especie
+    // Tipo de personaje
+    if (activeCharacterFilter === "starred") return false;
+    if (activeCharacterFilter === "others" && isFavorite) return false;
+
+    // Especie
     if (
-      speciesFilter !== "all" &&
-      char.species.toLowerCase() !== speciesFilter
+      activeSpeciesFilter !== "all" &&
+      char.species.toLowerCase() !== activeSpeciesFilter
     ) {
       return false;
     }
 
-    // Filtro por tipo de personaje
-    if (characterFilter === "others" && isFavorite) return false;
+    // Estado
+    if (
+      activeStatusFilter !== "all" &&
+      char.status.toLowerCase() !== activeStatusFilter
+    ) {
+      return false;
+    }
+
+    // Género
+    if (
+      activeGenderFilter !== "all" &&
+      char.gender.toLowerCase() !== activeGenderFilter
+    ) {
+      return false;
+    }
+
+    // Search
+    if (
+      activeSearch &&
+      !char.name.toLowerCase().includes(activeSearch.toLowerCase())
+    ) {
+      return false;
+    }
 
     return true;
   });
@@ -87,6 +167,13 @@ export default function CharacterList({ onSelect, selectedId }: Props) {
       : b.name.localeCompare(a.name);
   });
 
+  // const visibleCharacters = filteredFavorites.filter(
+  //   (char) => !hiddenIds.includes(Number(char.id))
+  // );
+
+  const visibleCharacters = sortedCharacters.filter(
+    (char) => !hiddenIds.includes(Number(char.id))
+  );
   const handleCharacterClick = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
     if (window.innerWidth < 768) {
@@ -97,6 +184,38 @@ export default function CharacterList({ onSelect, selectedId }: Props) {
   };
 
   if (error) return <p>Error loading characters.</p>;
+
+  const renderCharacterItem = (char: Character) => (
+    <li
+      key={char.id}
+      onClick={() => navigate(`/character/${char.id}`)}
+      className="flex items-center gap-3 p-2 rounded mb-1 hover:bg-gray-100 cursor-pointer"
+    >
+      <img
+        src={char.image}
+        alt={char.name}
+        className="w-10 h-10 rounded-full object-cover"
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium text-gray-800 truncate">
+          {char.id} {char.name}
+        </p>
+        <p className="text-xs text-gray-500">{char.species}</p>
+      </div>
+      {/* Evitar que FavoritesComponent dispare el navigate */}
+      <div onClick={(e) => e.stopPropagation()}>
+        <FavoritesComponent
+          itemId={char.id}
+          itemName={char.name}
+          itemImage={char.image}
+          itemGender={char.gender}
+          itemSpecies={char.species}
+          itemStatus={char.status}
+          itemOccupation={char.occupation}
+        />
+      </div>
+    </li>
+  );
 
   return (
     <div className="w-full md:w-3/3 max-h-screen overflow-y-auto border-r border-gray-200 p-4">
@@ -114,7 +233,6 @@ export default function CharacterList({ onSelect, selectedId }: Props) {
           )}
         </button>
       </div>
-
       <Search
         searchInput={search}
         setSearchInput={(value) => dispatch(setSearch(value))}
@@ -123,70 +241,67 @@ export default function CharacterList({ onSelect, selectedId }: Props) {
         setSpeciesFilter={(value) => dispatch(setSpeciesFilter(value))}
         updatePageNumber={() => {}}
       />
-
-      <FavoriteList
-        onSelect={onSelect}
-        selectedId={selectedId}
-        search={search}
-        speciesFilter={speciesFilter}
-        characterFilter={characterFilter}
-        sortOrder={sortOrder}
-      />
-
-      <h2 className="text-sm font-semibold text-gray-500 mb-2 mt-4 sticky top-0 bg-white z-10">
-        CHARACTERS ({filteredCharacters.length})
-      </h2>
-
-      {loading && (
+      {showFavorites && (
+        <FavoriteList onSelect={onSelect} selectedId={selectedId} />
+      )}
+      {showOthers && (
+        <h2 className="text-sm font-semibold text-gray-500 mb-2 mt-4 sticky top-0 bg-white z-10">
+          CHARACTERS ({visibleCharacters.length})
+        </h2>
+      )}
+      {loading && showOthers && (
         <div className="flex justify-center my-6">
           <div className="w-6 h-6 border-4 border-primary-600 border-t-transparent rounded-full animate-spin" />
         </div>
       )}
-
-      {filteredCharacters.length === 0 && !loading && (
+      {visibleCharacters.length === 0 && showOthers && !loading && (
         <p className="text-center text-red-500 font-semibold mt-4">
           No results found
         </p>
       )}
+      {showOthers && (
+        <AnimatePresence>
+          <ul className="divide-y divide-gray-200">
+            {visibleCharacters.map((char) => (
+              <motion.li
+                key={char.id}
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 10 }}
+                transition={{ duration: 0.2 }}
+                onClick={(e) => handleCharacterClick(char.id, e)}
+                className={`flex items-center gap-3 p-2 rounded cursor-pointer mb-1 ${
+                  selectedId === char.id
+                    ? "bg-primary-100"
+                    : "hover:bg-gray-100"
+                }`}
+              >
+                <img
+                  src={char.image}
+                  alt={char.name}
+                  className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">
+                    {char.id} {char.name}
+                  </p>
+                  <p className="text-xs text-gray-500">{char.species}</p>
+                </div>
 
-      <AnimatePresence>
-        <ul className="divide-y divide-gray-200">
-          {sortedCharacters.map((char) => (
-            <motion.li
-              key={char.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 10 }}
-              transition={{ duration: 0.2 }}
-              onClick={(e) => handleCharacterClick(char.id, e)}
-              className={`flex items-center gap-3 p-2 rounded cursor-pointer mb-1 ${
-                selectedId === char.id ? "bg-primary-100" : "hover:bg-gray-100"
-              }`}
-            >
-              <img
-                src={char.image}
-                alt={char.name}
-                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover"
-              />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-800 truncate">
-                  {char.id} {char.name}
-                </p>
-                <p className="text-xs text-gray-500">{char.species}</p>
-              </div>
-              <FavoritesComponent
-                itemId={char.id}
-                itemName={char.name}
-                itemImage={char.image}
-                itemGender={char.gender}
-                itemSpecies={char.species}
-                itemStatus={char.status}
-                itemOccupation={char.occupation}
-              />
-            </motion.li>
-          ))}
-        </ul>
-      </AnimatePresence>
+                <FavoritesComponent
+                  itemId={char.id}
+                  itemName={char.name}
+                  itemImage={char.image}
+                  itemGender={char.gender}
+                  itemSpecies={char.species}
+                  itemStatus={char.status}
+                  itemOccupation={char.occupation}
+                />
+              </motion.li>
+            ))}
+          </ul>
+        </AnimatePresence>
+      )}
     </div>
   );
 }
